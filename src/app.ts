@@ -1,3 +1,3 @@
 export const run = (args: string[]): void => {
-  console.log('hellow')
-};
+  console.log('hellow', args)
+}
