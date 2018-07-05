@@ -1,9 +1,15 @@
 import * as yargs from 'yargs'
 import { GraphQLClient } from 'graphql-request'
+import * as fs from 'fs'
+import * as userhome from 'userhome'
+
+const config = JSON.parse(
+  fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' }),
+)
 
 const client = new GraphQLClient('https://api.github.com/graphql', {
   headers: {
-    Authorization: 'Bearer ',
+    Authorization: `Bearer ${config.github_token}`,
   },
 })
 
@@ -30,6 +36,7 @@ export const run = (): void => {
 
           const variables = {
             owner: argv.owner || argv.o,
+            // owner: 'node-gh',
           }
 
           client

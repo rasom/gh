@@ -2,11 +2,16 @@
 Object.defineProperty(exports, '__esModule', { value: true })
 var yargs = require('yargs')
 var graphql_request_1 = require('graphql-request')
+var fs = require('fs')
+var userhome = require('userhome')
+var config = JSON.parse(
+  fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' })
+)
 var client = new graphql_request_1.GraphQLClient(
   'https://api.github.com/graphql',
   {
     headers: {
-      Authorization: 'Bearer '
+      Authorization: 'Bearer ' + config.github_token
     }
   }
 )
