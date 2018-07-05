@@ -1,15 +1,23 @@
 {
     "name": "gh",
     "description": "GitHub command line tools.",
-    "version": "1.12.13",
+    "version": "2.0.0",
     "homepage": "http://nodegh.io",
-    "author": {
-        "name": "Eduardo Lundgren",
-        "email": "eduardolundgren@gmail.com",
-        "web": "http://eduardo.io",
-        "twitter": "eduardolundgren"
-    },
     "contributors": [
+        {
+            "name": "Eduardo Lundgren",
+            "email": "eduardolundgren@gmail.com",
+            "web": "http://eduardo.io",
+            "twitter": "eduardolundgren"
+        },
+        {
+            "name": "Henrique Vicente",
+            "email": "henriquevicente@gmail.com"
+        },
+        {
+            "name": "Ryan Garant",
+            "web": "github.com/protoEvangelion"
+        },
         {
             "name": "Zeno Rocha",
             "email": "zno.rocha@gmail.com",
@@ -18,6 +26,10 @@
         }
     ],
     "license": "BSD-3-Clause",
+    "engines": {
+        "node": ">=4"
+    },
+    "preferGlobal": true,
     "repository": {
         "type": "git",
         "url": "git@github.com:node-gh/gh.git"
@@ -33,14 +45,15 @@
         "helpers"
     ],
     "bin": {
-        "gh": "bin/gh.js"
+        "gh": "index.js"
     },
     "scripts": {
+        "build": "gulp build",
         "ci": "gulp ci",
+        "dev": "gulp watch",
         "format": "prettier-standard 'lib/*.js' && prettier-standard 'lib/**/*.js' && prettier-standard 'bin/*.js'",
-        "postpublish": "sh scripts/postpublish.sh",
         "precommit": "lint-staged",
-        "prepublish": "sh scripts/prepublish.sh && npm run format",
+        "postinstall": "npm run format",
         "test": "gulp test"
     },
     "lint-staged": {
@@ -50,44 +63,27 @@
         ]
     },
     "dependencies": {
-        "async": "^1.5.0",
-        "babel-polyfill": "^6.0.16",
-        "colors": "^1.1.2",
-        "github": "^0.2.4",
-        "handlebars": "^4.0.4",
         "inquirer": "^0.11.0",
-        "lodash": "^3.10.1",
         "moment": "^2.20.1",
-        "nopt": "^3.0.4",
         "opn": "^5.3.0",
-        "request": "^2.83.0",
-        "truncate": "^2.0.0",
         "update-notifier": "^0.5.0",
-        "userhome": "^1.0.0",
-        "which": "^1.2.0",
-        "wordwrap": "^1.0.0"
+        "userhome": "^1.0.0"
     },
     "devDependencies": {
-        "babel": "^5.8",
-        "babel-eslint": "^8.1.2",
-        "eslint": "^4.14.0",
-        "eslint-config-prettier": "^2.9.0",
-        "eslint-config-recommended": "^2.0.0",
-        "eslint-plugin-prettier": "^2.4.0",
+        "@types/node": "^7.0.15",
         "gulp": "^3.9.0",
-        "gulp-complexity": "^0.3.2",
-        "gulp-istanbul": "^0.10.2",
-        "gulp-mocha": "^2.1.3",
+        "gulp-tslint": "^8.1.3",
+        "gulp-typescript": "^4.0.2",
         "husky": "^0.14.3",
         "lint-staged": "^6.0.0",
-        "plato": "^1.5.0",
+        "lodash": "^4.17.10",
         "prettier": "^1.9.2",
         "prettier-standard": "^8.0.1",
-        "rewire": "^2.3.4",
-        "run-sequence": "^1.1.4"
-    },
-    "engines": {
-        "node": ">=0.12"
-    },
-    "preferGlobal": true
+        "tslint": "^5.10.0",
+        "tslint-config-blvd": "^1.1.0",
+        "tslint-config-prettier": "^1.13.0",
+        "tslint-eslint-rules": "^5.3.1",
+        "tslint-plugin-prettier": "^1.3.0",
+        "typescript": "^2.9.2"
+    }
 }
