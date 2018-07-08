@@ -57,21 +57,35 @@ export const run = async () => {
 
   const parsedArgs = yargs
     .command({
-      command: 'issue [--list|-l] [--owner|-u] [--repo|-r] [--state|-S]',
+      command:
+        'issue [--list|-l] [--all|-a] [--assignee|-A] [--owner|-u] [--repo|-r] [--state|-S]',
       aliases: ['is'],
       desc: 'List issues from Github repository',
       handler: async argv => {
         if (argv.l || argv.list) {
+          const assignee =
+            argv.assignee || argv.A
+              ? `
+                  assignees(first:100) {
+                    edges {
+                      node {
+                        name
+                      }
+                    }
+                  }
+                `
+              : ''
+
           const user = argv.user || argv.u || remoteUser
           const repo = argv.repo || argv.r || remoteRepo
-          const state =
-            argv.state.toUpperCase() || argv.S.toUpperCase() || 'OPEN'
+          const state = (argv.state || argv.S || 'OPEN').toUpperCase()
 
           const query = `{
             repository(owner: "${user}", name: "${repo}") {
               issues(last:5, states: ${state}) {
                 edges {
                   node {
+                    ${assignee}
                     createdAt
                     number
                     title
