@@ -58,7 +58,7 @@ export const run = async () => {
   const parsedArgs = yargs
     .command({
       command:
-        'issue [--list|-l] [--all|-a] [--assignee|-A] [--owner|-u] [--repo|-r] [--state|-S]',
+        'issue [--list|-l] [--all|-a] [--assignee|-A] [--user|-u] [--repo|-r] [--state|-S]',
       aliases: ['is'],
       desc: 'List issues from Github repository',
       handler: async argv => {
@@ -80,19 +80,33 @@ export const run = async () => {
           const repo = argv.repo || argv.r || remoteRepo
           const state = (argv.state || argv.S || 'OPEN').toUpperCase()
 
+          const isPaginating = argv.all || argv.a
+          const statesArgument = isPaginating ? '' : `states: ${state}`
+
+          const numberOfItems = isPaginating ? 100 : 5
+
+          const paginationFields = isPaginating
+            ? `
+            pageInfo {
+              endCursor
+              hasPreviousPage
+            }
+          `
+            : ''
+
           const query = `{
             repository(owner: "${user}", name: "${repo}") {
-              issues(last:5, states: ${state}) {
+              issues(last: ${numberOfItems}, ${statesArgument}) {
                 edges {
                   node {
                     ${assignee}
                     createdAt
                     number
                     title
-                    state
                     url
                   }
                 }
+                ${paginationFields}
               }
             }
           }`
@@ -101,7 +115,12 @@ export const run = async () => {
 
           try {
             const issues: any = await client.request(query)
-            console.log('issues', issues.repository.issues.edges)
+            if (isPaginating) {
+              if (issues.repository.issues.pageInfo.hasPreviousPage) {
+                //
+              }
+            }
+            console.log('issues', issues.repository.issues.pageInfo)
           } catch (e) {
             throw new Error(`Error making request to GitHub GraphQL API: ${e}`)
           }
