@@ -129,6 +129,7 @@ var __generator =
       return { value: op[0] ? op[1] : void 0, done: true }
     }
   }
+var _this = this
 Object.defineProperty(exports, '__esModule', { value: true })
 var yargs = require('yargs')
 var graphql_request_1 = require('graphql-request')
@@ -137,11 +138,11 @@ var userhome = require('userhome')
 var simpleGit = require('simple-git/promise')
 var lodash_1 = require('lodash')
 var git = simpleGit()
-// let remoteUser
-// let remoteRepo
+var remoteUser
+var remoteRepo
 function initialize () {
   return __awaiter(this, void 0, void 0, function () {
-    var isGitRepo, remotes, e_1, e_2, remote, userOrOrg, repo
+    var isGitRepo, remotes, e_1, e_2, remote
     return __generator(this, function (_a) {
       switch (_a.label) {
         case 0:
@@ -176,15 +177,13 @@ function initialize () {
           if (!remote || remotes.length === 1) {
             remote = remotes[0].refs.fetch
           }
-          userOrOrg = remote.match('github[.]com.(.*)/')[1]
-          repo = remote.match(userOrOrg + '/(.*)[.]git')[1]
-          console.log('userOrOrg', userOrOrg, repo)
+          remoteUser = remote.match('github[.]com.(.*)/')[1]
+          remoteRepo = remote.match(remoteUser + '/(.*)[.]git')[1]
           return [2 /* return */]
       }
     })
   })
 }
-initialize()
 var config = JSON.parse(
   fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' })
 )
@@ -197,25 +196,67 @@ var client = new graphql_request_1.GraphQLClient(
   }
 )
 exports.run = function () {
-  var parsedArgs = yargs
-    .command({
-      command: 'issue [--list|-l] [--owner|-o]',
-      aliases: ['is'],
-      desc: 'List issues from Github repository',
-      handler: function (argv) {
-        if (argv.l || argv.list) {
-          var query =
-            'query($owner: String!) {\n            repository(owner:$owner, name:"gh") {\n              issues(last:100, states:OPEN) {\n                edges {\n                  node {\n                    title\n                    url\n                  }\n                }\n              }\n            }\n          }'
-          var variables = {
-            owner: argv.owner || argv.o
-          }
-          client.request(query, variables).then(function (data) {
-            return console.log('data', data.repository.issues.edges)
-          })
-          console.log('list')
-        }
+  return __awaiter(_this, void 0, void 0, function () {
+    var parsedArgs
+    var _this = this
+    return __generator(this, function (_a) {
+      switch (_a.label) {
+        case 0:
+          return [4 /* yield */, initialize()]
+        case 1:
+          _a.sent()
+          parsedArgs = yargs
+            .command({
+              command:
+                'issue [--list|-l] [--owner|-u] [--repo|-r] [--state|-S]',
+              aliases: ['is'],
+              desc: 'List issues from Github repository',
+              handler: function (argv) {
+                return __awaiter(_this, void 0, void 0, function () {
+                  var user, repo, state, query, issues, e_3
+                  return __generator(this, function (_a) {
+                    switch (_a.label) {
+                      case 0:
+                        if (!(argv.l || argv.list)) return [3 /* break */, 4]
+                        user = argv.user || argv.u || remoteUser
+                        repo = argv.repo || argv.r || remoteRepo
+                        state =
+                          argv.state.toUpperCase() ||
+                          argv.S.toUpperCase() ||
+                          'OPEN'
+                        query =
+                          '{\n            repository(owner: "' +
+                          user +
+                          '", name: "' +
+                          repo +
+                          '") {\n              issues(last:5, states: ' +
+                          state +
+                          ') {\n                edges {\n                  node {\n                    createdAt\n                    number\n                    title\n                    state\n                    url\n                  }\n                }\n              }\n            }\n          }'
+                        console.log('query', query)
+                        _a.label = 1
+                      case 1:
+                        _a.trys.push([1, 3, , 4])
+                        return [4 /* yield */, client.request(query)]
+                      case 2:
+                        issues = _a.sent()
+                        console.log('issues', issues.repository.issues.edges)
+                        return [3 /* break */, 4]
+                      case 3:
+                        e_3 = _a.sent()
+                        throw new Error(
+                          'Error making request to GitHub GraphQL API: ' + e_3
+                        )
+                      case 4:
+                        return [2 /* return */]
+                    }
+                  })
+                })
+              }
+            })
+            .help().argv
+          console.log('parsedArgs', parsedArgs)
+          return [2 /* return */]
       }
     })
-    .help().argv
-  console.log('parsedArgs', parsedArgs)
+  })
 }

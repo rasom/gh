@@ -7,8 +7,8 @@ import { find } from 'lodash'
 
 const git = simpleGit()
 
-// let remoteUser
-// let remoteRepo
+let remoteUser
+let remoteRepo
 
 async function initialize() {
   let isGitRepo
@@ -38,13 +38,9 @@ async function initialize() {
     remote = remotes[0].refs.fetch
   }
 
-  const userOrOrg = remote.match('github[.]com.(.*)/')[1]
-  const repo = remote.match(`${userOrOrg}/(.*)[.]git`)[1]
-
-  console.log('userOrOrg', userOrOrg, repo)
+  remoteUser = remote.match('github[.]com.(.*)/')[1]
+  remoteRepo = remote.match(`${remoteUser}/(.*)[.]git`)[1]
 }
-
-initialize()
 
 const config = JSON.parse(
   fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' }),
@@ -56,20 +52,30 @@ const client = new GraphQLClient('https://api.github.com/graphql', {
   },
 })
 
-export const run = (): void => {
+export const run = async () => {
+  await initialize()
+
   const parsedArgs = yargs
     .command({
-      command: 'issue [--list|-l] [--owner|-o]',
+      command: 'issue [--list|-l] [--owner|-u] [--repo|-r] [--state|-S]',
       aliases: ['is'],
       desc: 'List issues from Github repository',
-      handler: argv => {
+      handler: async argv => {
         if (argv.l || argv.list) {
-          const query = `query($owner: String!) {
-            repository(owner:$owner, name:"gh") {
-              issues(last:100, states:OPEN) {
+          const user = argv.user || argv.u || remoteUser
+          const repo = argv.repo || argv.r || remoteRepo
+          const state =
+            argv.state.toUpperCase() || argv.S.toUpperCase() || 'OPEN'
+
+          const query = `{
+            repository(owner: "${user}", name: "${repo}") {
+              issues(last:5, states: ${state}) {
                 edges {
                   node {
+                    createdAt
+                    number
                     title
+                    state
                     url
                   }
                 }
@@ -77,18 +83,14 @@ export const run = (): void => {
             }
           }`
 
-          const variables = {
-            owner: argv.owner || argv.o,
-            // owner: 'node-gh',
+          console.log('query', query)
+
+          try {
+            const issues: any = await client.request(query)
+            console.log('issues', issues.repository.issues.edges)
+          } catch (e) {
+            throw new Error(`Error making request to GitHub GraphQL API: ${e}`)
           }
-
-          client
-            .request(query, variables)
-            .then((data: any) =>
-              console.log('data', data.repository.issues.edges),
-            )
-
-          console.log('list')
         }
       },
     })
