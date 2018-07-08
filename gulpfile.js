@@ -5,20 +5,34 @@ var tslint = require('gulp-tslint')
 
 const tsProject = ts.createProject('tsconfig.json')
 
-gulp.task('build', () =>
+gulp.task('build', function (done) {
   gulp
     .src('src/**/*.ts')
     .pipe(tsProject())
     .pipe(gulp.dest('dist'))
-)
 
-gulp.task('tslint', () =>
+  done()
+})
+
+gulp.task('tslint', function (done) {
   gulp
     .src('src/**/*.ts')
     .pipe(tslint())
     .pipe(tslint.report())
+
+  done()
+})
+
+gulp.task('dev', function (done) {
+  gulp.watch('src/**/*.ts', gulp.series('build', 'tslint'))
+
+  done()
+})
+
+gulp.task(
+  'default',
+  gulp.series('build', 'tslint', function (done) {
+    // do more stuff
+    done()
+  })
 )
-
-gulp.task('watch', () => gulp.watch('src/**/*.ts', ['build', 'tslint']))
-
-gulp.task('default', ['build'])
