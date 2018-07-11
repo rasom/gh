@@ -1,5 +1,6 @@
 // @ts-nocheck
 var gulp = require('gulp')
+var sourcemaps = require('gulp-sourcemaps')
 var ts = require('gulp-typescript')
 var tslint = require('gulp-tslint')
 
@@ -8,7 +9,9 @@ const tsProject = ts.createProject('tsconfig.json')
 gulp.task('build', function (done) {
   gulp
     .src('src/**/*.ts')
+    .pipe(sourcemaps.init())
     .pipe(tsProject())
+    .pipe(sourcemaps.write())
     .pipe(gulp.dest('dist'))
 
   done()

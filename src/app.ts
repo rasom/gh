@@ -17,9 +17,7 @@ async function initialize() {
   try {
     isGitRepo = await git.checkIsRepo()
   } catch (e) {
-    throw new Error(
-      `Error when checking if current dir is a git repository: ${e}`,
-    )
+    throw new Error(`Error when checking if current dir is a git repository: ${e}`)
   }
 
   if (!isGitRepo) {
@@ -42,9 +40,7 @@ async function initialize() {
   remoteRepo = remote.match(`${remoteUser}/(.*)[.]git`)[1]
 }
 
-const config = JSON.parse(
-  fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' }),
-)
+const config = JSON.parse(fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' }))
 
 const client = new GraphQLClient('https://api.github.com/graphql', {
   headers: {
@@ -57,12 +53,13 @@ export const run = async () => {
 
   const parsedArgs = yargs
     .command({
-      command:
-        'issue [--list|-l] [--all|-a] [--assignee|-A] [--user|-u] [--repo|-r] [--state|-S]',
+      command: 'issue [--list|-l] [--all|-a] [--assignee|-A] [--user|-u] [--repo|-r] [--state|-S]',
       aliases: ['is'],
       desc: 'List issues from Github repository',
       handler: async argv => {
         if (argv.l || argv.list) {
+          let issuesArray: object[] = []
+
           const assignee =
             argv.assignee || argv.A
               ? `
@@ -81,49 +78,82 @@ export const run = async () => {
           const state = (argv.state || argv.S || 'OPEN').toUpperCase()
 
           const isPaginating = argv.all || argv.a
-          const statesArgument = isPaginating ? '' : `states: ${state}`
 
-          const numberOfItems = isPaginating ? 100 : 5
+          const generateQuery = (hasPreviousPage?: boolean, endCursor?: string) => {
+            let beforeArgument = ''
+            let numberOfItems = 1 // 5
+            let paginationFields = ''
+            let statesArgument = ''
 
-          const paginationFields = isPaginating
-            ? `
-            pageInfo {
-              endCursor
-              hasPreviousPage
-            }
-          `
-            : ''
+            if (isPaginating) {
+              beforeArgument = hasPreviousPage ? `before: "${endCursor}",` : ''
+              numberOfItems = 2 // 100
+              statesArgument = `states: ${state}`
 
-          const query = `{
-            repository(owner: "${user}", name: "${repo}") {
-              issues(last: ${numberOfItems}, ${statesArgument}) {
-                edges {
-                  node {
-                    ${assignee}
-                    createdAt
-                    number
-                    title
-                    url
-                  }
+              paginationFields = `
+                pageInfo {
+                  startCursor
+                  hasPreviousPage
                 }
-                ${paginationFields}
-              }
+              `
             }
-          }`
 
-          console.log('query', query)
+            return `{
+              repository(
+                owner: "${user}",
+                name: "${repo}"
+              ) {
+                issues(
+                  last: ${numberOfItems},
+                  ${beforeArgument}
+                  ${statesArgument}
+                ) {
+                  edges {
+                    node {
+                      ${assignee}
+                      createdAt
+                      number
+                      title
+                      url
+                    }
+                  }
+                  ${paginationFields}
+                }
+              }
+            }`
+          }
 
           try {
-            const issues: any = await client.request(query)
+            const response: any = await client.request(generateQuery())
+            const issues = response.repository.issues
+
+            issuesArray = issues.edges
+
             if (isPaginating) {
-              if (issues.repository.issues.pageInfo.hasPreviousPage) {
-                //
+              let hasPreviousPage = issues.pageInfo.hasPreviousPage
+              let startCursor = issues.pageInfo.startCursor
+              let temp
+
+              while (hasPreviousPage) {
+                try {
+                  temp = await client.request(generateQuery(hasPreviousPage, startCursor))
+
+                  hasPreviousPage = temp.repository.issues.pageInfo.hasPreviousPage
+                  startCursor = temp.repository.issues.pageInfo.startCursor
+
+                  issuesArray.push(...temp.repository.issues.edges)
+                } catch (e) {
+                  throw new Error(`Error when paginating issues: ${e}`)
+                }
               }
+            } else {
+              console.log('not paginating')
             }
-            console.log('issues', issues.repository.issues.pageInfo)
           } catch (e) {
-            throw new Error(`Error making request to GitHub GraphQL API: ${e}`)
+            throw new Error(`Error making initial issues request: ${e}`)
           }
+
+          console.log('issuesArray', issuesArray)
         }
       },
     })
