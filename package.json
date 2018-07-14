@@ -56,6 +56,9 @@
     "postinstall": "npm run format",
     "test": "gulp test"
   },
+  "resolutions": {
+    "eslint-scope": "3.7.1"
+  },
   "lint-staged": {
     "*.js": [
       "prettier-standard",
@@ -63,9 +66,10 @@
     ]
   },
   "dependencies": {
+    "chalk": "^2.4.1",
     "graphql-request": "^1.6.0",
     "inquirer": "^6.0.0",
-    "moment": "^2.20.1",
+    "moment": "^2.22.2",
     "nopt": "^4.0.1",
     "opn": "^5.3.0",
     "simple-git": "^1.96.0",

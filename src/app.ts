@@ -1,9 +1,13 @@
 import * as yargs from 'yargs'
+import * as chalk from 'chalk'
 import { GraphQLClient } from 'graphql-request'
 import * as fs from 'fs'
 import * as userhome from 'userhome'
 import * as simpleGit from 'simple-git/promise'
 import { find } from 'lodash'
+import * as moment from 'moment'
+
+const log = console.log
 
 const git = simpleGit()
 
@@ -58,8 +62,6 @@ export const run = async () => {
       desc: 'List issues from Github repository',
       handler: async argv => {
         if (argv.l || argv.list) {
-          let issuesArray: object[] = []
-
           const assignee =
             argv.assignee || argv.A
               ? `
@@ -111,6 +113,9 @@ export const run = async () => {
                   edges {
                     node {
                       ${assignee}
+                      author {
+                        login
+                      }
                       createdAt
                       number
                       title
@@ -123,37 +128,73 @@ export const run = async () => {
             }`
           }
 
+          interface IRepoIssues {
+            repository: {
+              issues: {
+                edges: object[]
+                pageInfo: {
+                  hasPreviousPage: boolean
+                  startCursor: string
+                }
+              }
+            }
+          }
+
+          let edges
+          let pageInfo
+          let response
+
           try {
-            const response: any = await client.request(generateQuery())
-            const issues = response.repository.issues
-
-            issuesArray = issues.edges
-
             if (isPaginating) {
-              let hasPreviousPage = issues.pageInfo.hasPreviousPage
-              let startCursor = issues.pageInfo.startCursor
-              let temp
+              response = await client.request<IRepoIssues>(generateQuery())
+              edges = response.repository.issues.edges
+              pageInfo = response.repository.issues.pageInfo
+              console.log('edges.length', edges.length)
+              let dateCreated
+              let node
+
+              for (let i = edges.length - 1; i >= 0; i--) {
+                node = edges[i].node
+                dateCreated = moment(node.createdAt).fromNow()
+                log(
+                  chalk.green(`#${node.number}`),
+                  node.title,
+                  chalk.magenta(`@${node.author.login} (${dateCreated})`)
+                )
+              }
+
+              let hasPreviousPage = pageInfo.hasPreviousPage
+              let startCursor = pageInfo.startCursor
 
               while (hasPreviousPage) {
                 try {
-                  temp = await client.request(generateQuery(hasPreviousPage, startCursor))
+                  response = await client.request<IRepoIssues>(
+                    generateQuery(hasPreviousPage, startCursor)
+                  )
+                  edges = response.repository.issues.edges
+                  pageInfo = response.repository.issues.pageInfo
 
-                  hasPreviousPage = temp.repository.issues.pageInfo.hasPreviousPage
-                  startCursor = temp.repository.issues.pageInfo.startCursor
+                  hasPreviousPage = pageInfo.hasPreviousPage
+                  startCursor = pageInfo.startCursor
 
-                  issuesArray.push(...temp.repository.issues.edges)
+                  console.log(edges)
                 } catch (e) {
                   throw new Error(`Error when paginating issues: ${e}`)
                 }
               }
             } else {
-              console.log('not paginating')
+              response = await client.request<IRepoIssues>(generateQuery())
+              edges = response.repository.issues.edges
+
+              for (let i = edges.length; i > 0; i--) {
+                log(edges[i])
+              }
+
+              console.log('not paginating', edges)
             }
           } catch (e) {
             throw new Error(`Error making initial issues request: ${e}`)
           }
-
-          console.log('issuesArray', issuesArray)
         }
       },
     })
