@@ -26,11 +26,14 @@ gulp.task('tslint', function (done) {
   done()
 })
 
-gulp.task('dev', function (done) {
-  gulp.watch('src/**/*.ts', gulp.series('build', 'tslint'))
+gulp.task(
+  'dev',
+  gulp.series('build', function (done) {
+    gulp.watch('src/**/*.ts', gulp.series('build', 'tslint'))
 
-  done()
-})
+    done()
+  })
+)
 
 gulp.task(
   'default',

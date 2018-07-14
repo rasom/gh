@@ -143,17 +143,15 @@ export const run = async () => {
           const getIssues = async (issues?, firstCall?: boolean) => {
             let response
 
-            if (!isPaginating) {
-              response = await client.request<IRepoIssues>(generateQuery())
-              printIssues(issues)
-              return
-            }
-
             if (issues) {
               printIssues(issues)
 
-              if (!issues.pageInfo.hasPreviousPage) {
+              if (!issues.pageInfo) {
                 return
+
+                if (!issues.pageInfo.hasPreviousPage) {
+                  return
+                }
               }
             }
 
@@ -174,6 +172,8 @@ export const run = async () => {
           const printIssues = issues => {
             let dateCreated
             let node
+
+            console.log('issues', issues)
 
             const issuesLength = issues.edges.length - 1
 
