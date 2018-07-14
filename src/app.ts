@@ -140,58 +140,57 @@ export const run = async () => {
             }
           }
 
-          let edges
-          let pageInfo
-          let response
+          const getIssues = async (issues?, firstCall?: boolean) => {
+            let response
+
+            if (!isPaginating) {
+              response = await client.request<IRepoIssues>(generateQuery())
+              printIssues(issues)
+              return
+            }
+
+            if (issues) {
+              printIssues(issues)
+
+              if (!issues.pageInfo.hasPreviousPage) {
+                return
+              }
+            }
+
+            if (firstCall) {
+              response = await client.request<IRepoIssues>(generateQuery())
+            } else {
+              response = await client.request<IRepoIssues>(
+                generateQuery(issues.pageInfo.hasPreviousPage, issues.pageInfo.startCursor)
+              )
+            }
+
+            getIssues({
+              edges: response.repository.issues.edges,
+              pageInfo: response.repository.issues.pageInfo,
+            })
+          }
+
+          const printIssues = issues => {
+            let dateCreated
+            let node
+
+            const issuesLength = issues.edges.length - 1
+
+            for (let i = issuesLength; i >= 0; i--) {
+              node = issues.edges[i].node
+              dateCreated = moment(node.createdAt).fromNow()
+
+              log(
+                chalk.green(`#${node.number}`),
+                node.title,
+                chalk.magenta(`@${node.author.login} (${dateCreated})`)
+              )
+            }
+          }
 
           try {
-            if (isPaginating) {
-              response = await client.request<IRepoIssues>(generateQuery())
-              edges = response.repository.issues.edges
-              pageInfo = response.repository.issues.pageInfo
-              console.log('edges.length', edges.length)
-              let dateCreated
-              let node
-
-              for (let i = edges.length - 1; i >= 0; i--) {
-                node = edges[i].node
-                dateCreated = moment(node.createdAt).fromNow()
-                log(
-                  chalk.green(`#${node.number}`),
-                  node.title,
-                  chalk.magenta(`@${node.author.login} (${dateCreated})`)
-                )
-              }
-
-              let hasPreviousPage = pageInfo.hasPreviousPage
-              let startCursor = pageInfo.startCursor
-
-              while (hasPreviousPage) {
-                try {
-                  response = await client.request<IRepoIssues>(
-                    generateQuery(hasPreviousPage, startCursor)
-                  )
-                  edges = response.repository.issues.edges
-                  pageInfo = response.repository.issues.pageInfo
-
-                  hasPreviousPage = pageInfo.hasPreviousPage
-                  startCursor = pageInfo.startCursor
-
-                  console.log(edges)
-                } catch (e) {
-                  throw new Error(`Error when paginating issues: ${e}`)
-                }
-              }
-            } else {
-              response = await client.request<IRepoIssues>(generateQuery())
-              edges = response.repository.issues.edges
-
-              for (let i = edges.length; i > 0; i--) {
-                log(edges[i])
-              }
-
-              console.log('not paginating', edges)
-            }
+            getIssues(null, true)
           } catch (e) {
             throw new Error(`Error making initial issues request: ${e}`)
           }
