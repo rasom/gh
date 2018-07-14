@@ -1,5 +1,5 @@
 import * as yargs from 'yargs'
-import * as chalk from 'chalk'
+import chalk from 'chalk'
 import { GraphQLClient } from 'graphql-request'
 import * as fs from 'fs'
 import * as userhome from 'userhome'
