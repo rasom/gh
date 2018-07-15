@@ -2,6 +2,7 @@
   "rulesDirectory": ["tslint-plugin-prettier"],
   "extends": ["tslint-eslint-rules", "tslint-config-blvd/react", "tslint-config-prettier"],
   "rules": {
+    "no-shadowed-variable": false,
     "prettier": [
       true,
       {
