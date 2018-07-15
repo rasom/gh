@@ -3,7 +3,7 @@ import chalk from 'chalk'
 import { GraphQLClient } from 'graphql-request'
 import * as fs from 'fs'
 import * as userhome from 'userhome'
-import * as simpleGit from 'simple-git/promise'
+import * as simpleGit from 'simple-git/promise/index'
 import { find } from 'lodash'
 import * as moment from 'moment'
 

@@ -7,27 +7,26 @@ import * as simpleGit from 'simple-git/promise'
 import { find } from 'lodash'
 import Command, { flags } from '@oclif/command'
 
+const config = JSON.parse(fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' }))
+
 export default abstract class extends Command {
   public static flags = {
     loglevel: flags.string({ options: ['error', 'warn', 'info', 'debug'] }),
   }
 
-  public log(msg, level) {
+  public log(...msg) {
     switch (this.flags.loglevel) {
-      case 'error':
-        if (level === 'error') console.error(msg)
-        break
       case 'warn':
-        if (level === 'warn') console.warn(msg)
+        console.warn(...msg)
         break
       case 'info':
-        if (level === 'info') console.log(msg)
+        console.log(...msg)
         break
       case 'debug':
-        if (level === 'error') console.error(msg)
+        console.error(...msg)
         break
       default:
-        console.log(msg)
+        console.log(...msg)
     }
   }
 
@@ -64,8 +63,6 @@ export default abstract class extends Command {
     remoteUser = remote.match('github[.]com.(.*)/')[1]
     remoteRepo = remote.match(`${remoteUser}/(.*)[.]git`)[1]
 
-    const config = JSON.parse(fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' }))
-
     const client = new GraphQLClient('https://api.github.com/graphql', {
       headers: {
         Authorization: `Bearer ${config.github_token}`,
@@ -80,6 +77,7 @@ export default abstract class extends Command {
     this.flags = flags
   }
   public async catch(err) {
+    throw new Error(err)
     // handle any error from the command
   }
   public async finally(err) {
