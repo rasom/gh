@@ -9,10 +9,17 @@ import Command, { flags } from '@oclif/command'
 
 const config = JSON.parse(fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' }))
 
+const git = simpleGit()
+
 export default abstract class extends Command {
   public static flags = {
     loglevel: flags.string({ options: ['error', 'warn', 'info', 'debug'] }),
   }
+
+  public remoteUser
+  public remoteRepo
+  public client
+  public flags = {}
 
   public log(...msg) {
     switch (this.flags.loglevel) {
@@ -31,15 +38,8 @@ export default abstract class extends Command {
   }
 
   public async init(err) {
-    let remoteUser
-    let remoteRepo
-    let isGitRepo
-    let remotes
-
-    const git = simpleGit()
-
     try {
-      isGitRepo = await git.checkIsRepo()
+      var isGitRepo = await git.checkIsRepo()
     } catch (e) {
       throw new Error(`Error when checking if current dir is a git repository: ${e}`)
     }
@@ -48,39 +48,52 @@ export default abstract class extends Command {
       throw new Error('Current directory is not a git repo')
     }
 
-    try {
-      remotes = await git.getRemotes(true)
-    } catch (e) {
-      throw new Error(`Error when looking up your local git remotes: ${e}`)
-    }
+    this.setFlags()
+    this.setupGraphQLClient()
+    await this.setUserAndRepo()
+  }
 
-    let remote = find(remotes, { name: 'origin' }).refs.fetch
+  public async catch(err) {
+    throw new Error(err)
+    // handle any error from the command
+  }
 
-    if (!remote || remotes.length === 1) {
-      remote = remotes[0].refs.fetch
-    }
+  public async finally() {
+    // called after run and catch regardless of whether or not the command errored
+  }
 
-    remoteUser = remote.match('github[.]com.(.*)/')[1]
-    remoteRepo = remote.match(`${remoteUser}/(.*)[.]git`)[1]
+  private setFlags() {
+    const { flags } = this.parse(this.constructor)
 
+    this.flags = flags
+  }
+
+  private setupGraphQLClient() {
     const client = new GraphQLClient('https://api.github.com/graphql', {
       headers: {
         Authorization: `Bearer ${config.github_token}`,
       },
     })
 
-    const { flags } = this.parse(this.constructor)
-
-    this.remoteUser = remoteUser
-    this.remoteRepo = remoteRepo
     this.client = client
-    this.flags = flags
   }
-  public async catch(err) {
-    throw new Error(err)
-    // handle any error from the command
-  }
-  public async finally(err) {
-    // called after run and catch regardless of whether or not the command errored
+
+  private async setUserAndRepo() {
+    try {
+      const remotes = await git.getRemotes(true)
+
+      if (remotes) {
+        let remote = find(remotes, { name: 'origin' }).refs.fetch
+
+        if (!remote || remotes.length === 1) {
+          remote = remotes[0].refs.fetch
+        }
+
+        this.remoteUser = remote.match('github[.]com.(.*)/')[1]
+        this.remoteRepo = remote.match(`${this.remoteUser}/(.*)[.]git`)[1]
+      }
+    } catch (e) {
+      throw new Error(`Error when looking up your local git remotes: ${e}`)
+    }
   }
 }

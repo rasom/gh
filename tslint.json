@@ -3,6 +3,8 @@
   "extends": ["tslint-eslint-rules", "tslint-config-blvd/react", "tslint-config-prettier"],
   "rules": {
     "no-shadowed-variable": false,
+    "no-var-keyword": false,
+    "prefer-const": false,
     "prettier": [
       true,
       {
