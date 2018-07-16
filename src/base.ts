@@ -19,7 +19,7 @@ export default abstract class extends Command {
   public remoteUser
   public remoteRepo
   public client
-  public flags = {}
+  public flags = { loglevel: 'minimal' }
 
   public log(...msg) {
     switch (this.flags.loglevel) {
@@ -37,7 +37,7 @@ export default abstract class extends Command {
     }
   }
 
-  public async init(err) {
+  public async init() {
     try {
       var isGitRepo = await git.checkIsRepo()
     } catch (e) {
@@ -80,20 +80,26 @@ export default abstract class extends Command {
 
   private async setUserAndRepo() {
     try {
-      const remotes = await git.getRemotes(true)
-
-      if (remotes) {
-        let remote = find(remotes, { name: 'origin' }).refs.fetch
-
-        if (!remote || remotes.length === 1) {
-          remote = remotes[0].refs.fetch
-        }
-
-        this.remoteUser = remote.match('github[.]com.(.*)/')[1]
-        this.remoteRepo = remote.match(`${this.remoteUser}/(.*)[.]git`)[1]
-      }
+      var remotes = await git.getRemotes(true)
     } catch (e) {
       throw new Error(`Error when looking up your local git remotes: ${e}`)
     }
+
+    let remoteOrigin = find(remotes, { name: 'origin' })
+
+    if (!remoteOrigin) {
+      throw new Error(
+        'No local remote. Try adding one with `git remote add origin your_repo_fetch_url`'
+      )
+    }
+
+    let remote = remoteOrigin.refs.fetch
+
+    if (!remote || remotes.length === 1) {
+      remote = remotes[0].refs.fetch
+    }
+
+    this.remoteUser = remote.match('github[.]com.(.*)/')![1]
+    this.remoteRepo = remote.match(`${this.remoteUser}/(.*)[.]git`)![1]
   }
 }
