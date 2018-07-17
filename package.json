@@ -75,8 +75,8 @@
     "precommit": "lint-staged"
   },
   "lint-staged": {
-    "*.js": [
-      "prettier-standard",
+    "*.ts": [
+      "prettier-tslint check",
       "git add"
     ]
   },
@@ -108,6 +108,7 @@
     "nyc": "^12.0.2",
     "prettier": "^1.9.2",
     "prettier-standard": "^8.0.1",
+    "prettier-tslint": "^0.4.0",
     "ts-node": "^7.0.0",
     "tslint": "^5.10.0",
     "tslint-config-blvd": "^1.1.0",
