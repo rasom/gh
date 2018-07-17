@@ -1,13 +1,8 @@
 // https://oclif.io/docs/base_class.html
 
-import * as fs from 'fs'
-import { GraphQLClient } from 'graphql-request'
-import * as userhome from 'userhome'
 import * as simpleGit from 'simple-git/promise'
 import { find } from 'lodash'
 import Command, { flags } from '@oclif/command'
-
-const config = JSON.parse(fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' }))
 
 const git = simpleGit()
 
@@ -49,7 +44,6 @@ export default abstract class extends Command {
     }
 
     this.setFlags()
-    this.setupGraphQLClient()
     await this.setUserAndRepo()
   }
 
@@ -63,19 +57,10 @@ export default abstract class extends Command {
   }
 
   private setFlags() {
+    // @ts-ignore: need to figure out if this error is benign
     const { flags } = this.parse(this.constructor)
 
     this.flags = flags
-  }
-
-  private setupGraphQLClient() {
-    const client = new GraphQLClient('https://api.github.com/graphql', {
-      headers: {
-        Authorization: `Bearer ${config.github_token}`,
-      },
-    })
-
-    this.client = client
   }
 
   private async setUserAndRepo() {
@@ -85,6 +70,7 @@ export default abstract class extends Command {
       throw new Error(`Error when looking up your local git remotes: ${e}`)
     }
 
+    // @ts-ignore: https://github.com/steveukx/git-js/pull/283
     let remoteOrigin = find(remotes, { name: 'origin' })
 
     if (!remoteOrigin) {
@@ -95,6 +81,7 @@ export default abstract class extends Command {
 
     let remote = remoteOrigin.refs.fetch
 
+    // @ts-ignore: https://github.com/steveukx/git-js/pull/283
     if (!remote || remotes.length === 1) {
       remote = remotes[0].refs.fetch
     }

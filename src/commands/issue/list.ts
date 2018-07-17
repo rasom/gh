@@ -3,6 +3,7 @@ import Command from '../../base'
 import { IRepoIssues } from '../../interfaces'
 import chalk from 'chalk'
 import * as moment from 'moment'
+import { graphQL } from '../../graphQL'
 
 export default class List extends Command {
   public static description = 'describe the command here'
@@ -102,9 +103,9 @@ export default class List extends Command {
       }
 
       if (firstCall) {
-        response = await this.client.request<IRepoIssues>(generateQuery())
+        response = await graphQL.request<IRepoIssues>(generateQuery())
       } else {
-        response = await this.client.request<IRepoIssues>(
+        response = await graphQL.request<IRepoIssues>(
           generateQuery(issues.pageInfo.hasPreviousPage, issues.pageInfo.startCursor)
         )
       }

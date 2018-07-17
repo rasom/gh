@@ -64,6 +64,7 @@
     "cli"
   ],
   "scripts": {
+    "clean": "rm -rf node_modules && git clean -dfx && npm unlink && npm install && npm install -g gh",
     "postpack": "rm -f oclif.manifest.json npm-shrinkwrap.json",
     "posttest": "tsc -p test --noEmit && tslint -p test -t stylish",
     "prepack": "rm -rf lib && tsc && oclif-dev manifest && oclif-dev readme && npm shrinkwrap",
