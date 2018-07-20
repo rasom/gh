@@ -10,9 +10,10 @@ export default class List extends Command {
 
   public static flags = {
     help: flags.help({ char: 'h' }),
-    assignee: flags.string({ char: 'A', description: 'Filter by assignee' }),
+    assignee: flags.string({ char: 'A', description: 'Filter issues by assignee' }),
     all: flags.boolean({ char: 'a', description: 'List all issues' }),
-    description: flags.boolean({ char: 'd', description: 'Show detailed version of issue' }),
+    detailed: flags.boolean({ char: 'd', description: 'Show detailed version of issues' }),
+    label: flags.boolean({ char: 'L', description: 'Show labels of each issues' }),
     repo: flags.string({ char: 'r', description: 'The repo to fetch issues from' }),
     state: flags.string({ char: 'S', description: 'Filter by closed or open issues' }),
     user: flags.string({ char: 'u', description: 'The owner of the repository' }),
@@ -28,20 +29,32 @@ export default class List extends Command {
 
     const assigneeField = flags.assignee
       ? `
-            assignees(first:100) {
-              edges {
-                node {
-                  name
-                }
+          assignees(first: 100) {
+            edges {
+              node {
+                login
               }
             }
-          `
+          }
+        `
       : ''
 
-    const descriptionField = flags.description
+    const detailedField = flags.detailed
       ? `
           bodyText
           url
+        `
+      : ''
+
+    const labelField = flags.label
+      ? `
+          labels(first: 100) {
+            edges {
+              node {
+                name
+              }
+            }
+          }
         `
       : ''
 
@@ -78,11 +91,13 @@ export default class List extends Command {
               edges {
                 node {
                   ${assigneeField}
+                  ${detailedField}
+                  ${labelField}
+
                   author {
                     login
                   }
                   createdAt
-                  ${descriptionField}
                   number
                   title
                   url
@@ -112,6 +127,7 @@ export default class List extends Command {
 
       if (firstCall) {
         response = await graphQL.request<IRepoIssues>(generateQuery())
+        console.log('generateQuery()', generateQuery())
       } else {
         response = await graphQL.request<IRepoIssues>(
           generateQuery(issues.pageInfo.hasPreviousPage, issues.pageInfo.startCursor)
@@ -128,26 +144,47 @@ export default class List extends Command {
       let dateCreated
       let node
       let formattedIssue
+      const trimSpaces = /^\s+|\s+$/gm
 
       const issuesLength = issues.edges.length - 1
 
       for (let i = issuesLength; i >= 0; i--) {
         node = issues.edges[i].node
+
+        if (flags.assignee) {
+          const assignees = node.assignees.edges.filter(
+            assignee => assignee.node.login === flags.assignee
+          )
+
+          if (assignees.length === 0) {
+            continue
+          }
+        }
+
         dateCreated = moment(node.createdAt).fromNow()
 
         formattedIssue = `${chalk.green(`#${node.number}`)} ${node.title} ${chalk.magenta(
           `@${node.author.login} (${dateCreated})`
         )}`
 
-        if (flags.description) {
+        if (flags.detailed) {
           formattedIssue = `
             ${formattedIssue}
             ${node.bodyText}
             ${node.url}
-          `.replace(/^\s+|\s+$/gm, '')
+          `
         }
 
-        this.log(formattedIssue, '\n')
+        if (flags.label) {
+          const labels: string = node.labels.edges.map(label => label.node.name).join(', ')
+
+          formattedIssue = `
+            ${formattedIssue}
+            ${labels && `Labels: ${labels}`}
+          `
+        }
+
+        this.log(formattedIssue.replace(trimSpaces, ''), '\n')
       }
     }
 
