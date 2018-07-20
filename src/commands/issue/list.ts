@@ -12,6 +12,7 @@ export default class List extends Command {
     help: flags.help({ char: 'h' }),
     assignee: flags.string({ char: 'A', description: 'Filter by assignee' }),
     all: flags.boolean({ char: 'a', description: 'List all issues' }),
+    description: flags.boolean({ char: 'd', description: 'Show detailed version of issue' }),
     repo: flags.string({ char: 'r', description: 'The repo to fetch issues from' }),
     state: flags.string({ char: 'S', description: 'Filter by closed or open issues' }),
     user: flags.string({ char: 'u', description: 'The owner of the repository' }),
@@ -19,8 +20,13 @@ export default class List extends Command {
 
   public async run() {
     const { flags } = this.parse(List)
+    const user = flags.user || this.remoteUser
+    const repo = flags.repo || this.remoteRepo
+    const state = (flags.state || 'OPEN').toUpperCase()
 
-    const assignee = flags.assignee
+    const isPaginating = flags.all
+
+    const assigneeField = flags.assignee
       ? `
             assignees(first:100) {
               edges {
@@ -32,11 +38,12 @@ export default class List extends Command {
           `
       : ''
 
-    const user = flags.user || this.remoteUser
-    const repo = flags.repo || this.remoteRepo
-    const state = (flags.state || 'OPEN').toUpperCase()
-
-    const isPaginating = flags.all
+    const descriptionField = flags.description
+      ? `
+          bodyText
+          url
+        `
+      : ''
 
     const generateQuery = (hasPreviousPage?: boolean, endCursor?: string) => {
       let beforeArgument = ''
@@ -70,11 +77,12 @@ export default class List extends Command {
             ) {
               edges {
                 node {
-                  ${assignee}
+                  ${assigneeField}
                   author {
                     login
                   }
                   createdAt
+                  ${descriptionField}
                   number
                   title
                   url
@@ -119,6 +127,7 @@ export default class List extends Command {
     const printIssues = issues => {
       let dateCreated
       let node
+      let formattedIssue
 
       const issuesLength = issues.edges.length - 1
 
@@ -126,11 +135,19 @@ export default class List extends Command {
         node = issues.edges[i].node
         dateCreated = moment(node.createdAt).fromNow()
 
-        this.log(
-          chalk.green(`#${node.number}`),
-          node.title,
-          chalk.magenta(`@${node.author.login} (${dateCreated})`)
-        )
+        formattedIssue = `${chalk.green(`#${node.number}`)} ${node.title} ${chalk.magenta(
+          `@${node.author.login} (${dateCreated})`
+        )}`
+
+        if (flags.description) {
+          formattedIssue = `
+            ${formattedIssue}
+            ${node.bodyText}
+            ${node.url}
+          `.replace(/^\s+|\s+$/gm, '')
+        }
+
+        this.log(formattedIssue, '\n')
       }
     }
 
