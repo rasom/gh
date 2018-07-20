@@ -4,6 +4,7 @@ export default class Issue extends Command {
   public static description = 'describe the command here'
 
   public static flags = {
+    // ...Command.flags,
     help: flags.help({ char: 'h' }),
   }
 

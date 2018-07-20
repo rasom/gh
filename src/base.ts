@@ -3,18 +3,24 @@
 import * as simpleGit from 'simple-git/promise'
 import { find } from 'lodash'
 import Command, { flags } from '@oclif/command'
+import * as fs from 'fs'
+import * as userhome from 'userhome'
+
+const config = JSON.parse(fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' }))
 
 const git = simpleGit()
 
 export default abstract class extends Command {
   public static flags = {
     loglevel: flags.string({ options: ['error', 'warn', 'info', 'debug'] }),
+    remote: flags.string({
+      description: 'Override the default_remote setting in ~/.default.gh.json',
+    }),
   }
 
   public remoteUser
   public remoteRepo
   public client
-  public flags = { loglevel: 'minimal' }
 
   public log(...msg) {
     switch (this.flags.loglevel) {
@@ -43,7 +49,7 @@ export default abstract class extends Command {
       throw new Error('Current directory is not a git repo')
     }
 
-    this.setFlags()
+    this.setGlobalFlags()
     await this.setUserAndRepo()
   }
 
@@ -56,7 +62,7 @@ export default abstract class extends Command {
     // called after run and catch regardless of whether or not the command errored
   }
 
-  private setFlags() {
+  private setGlobalFlags() {
     // @ts-ignore: need to figure out if this error is benign
     const { flags } = this.parse(this.constructor)
 
@@ -64,29 +70,31 @@ export default abstract class extends Command {
   }
 
   private async setUserAndRepo() {
+    // TODO: add default remote to config https://github.com/node-gh/gh/issues/85
     try {
-      var remotes = await git.getRemotes(true)
+      var remotesArr = await git.getRemotes(true)
     } catch (e) {
       throw new Error(`Error when looking up your local git remotes: ${e}`)
     }
 
-    // @ts-ignore: https://github.com/steveukx/git-js/pull/283
-    let remoteOrigin = find(remotes, { name: 'origin' })
+    const remoteName = this.flags.remote || config.default_remote || 'origin'
 
-    if (!remoteOrigin) {
+    try {
+      // @ts-ignore: https://github.com/steveukx/git-js/pull/283
+      var remote = find(remotesArr, { name: remoteName }).refs.fetch
+    } catch (e) {
       throw new Error(
-        'No local remote. Try adding one with `git remote add origin your_repo_fetch_url`'
+        `No remote with name: ${remoteName}. Try adding one with \`git remote add origin your_repo_fetch_url\``
       )
     }
 
-    let remote = remoteOrigin.refs.fetch
-
     // @ts-ignore: https://github.com/steveukx/git-js/pull/283
-    if (!remote || remotes.length === 1) {
-      remote = remotes[0].refs.fetch
+    if (remotesArr.length === 1) {
+      remote = remotesArr[0].refs.fetch
     }
 
     this.remoteUser = remote.match('github[.]com.(.*)/')![1]
     this.remoteRepo = remote.match(`${this.remoteUser}/(.*)[.]git`)![1]
+    console.log('remote', this.remoteRepo, this.remoteUser)
   }
 }
