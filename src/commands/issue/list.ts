@@ -17,7 +17,7 @@ export default class List extends Command {
       char: 'L',
       description: 'Filter issues by label(s). If multiple labels they should be comma separated',
     }),
-    milestone: flags.boolean({ char: 'M', description: 'Filter issues by milestone' }),
+    milestone: flags.string({ char: 'M', description: 'Filter issues by milestone' }),
     repo: flags.string({ char: 'r', description: 'The repo to fetch issues from' }),
     state: flags.string({ char: 'S', description: 'Filter by closed or open issues' }),
     user: flags.string({ char: 'u', description: 'The owner of the repository' }),
@@ -30,31 +30,22 @@ export default class List extends Command {
     const state = (flags.state || 'OPEN').toUpperCase()
 
     const generateQuery = (hasPreviousPage?: boolean, endCursor?: string) => {
-      const assigneeField = flags.assignee
-        ? `
-            assignees(first: 100) {
-              edges {
-                node {
-                  login
-                }
-              }
-            }
-          `
-        : ''
-
-      const detailedField = flags.detailed
-        ? `
-            bodyText
-            url
-          `
-        : ''
+      let assigneeField = ''
+      let beforeArgument = ''
+      let detailedField = ''
+      let labelsArgument = ''
+      let labelsField = ''
+      let milestoneField = ''
+      let numberOfItems = 1
+      let paginationFields = ''
+      let statesArgument = ''
 
       if (flags.all) {
-        var beforeArgument = hasPreviousPage ? `before: "${endCursor}",` : ''
-        var numberOfItems = 2 // TODO: change number of items to be realistic amount
-        var statesArgument = `states: ${state}`
+        beforeArgument = hasPreviousPage ? `before: "${endCursor}",` : ''
+        numberOfItems = 2 // TODO: change number of items to be realistic amount
+        statesArgument = `states: ${state}`
 
-        var paginationFields = `
+        paginationFields = `
           pageInfo {
             startCursor
             hasPreviousPage
@@ -62,16 +53,44 @@ export default class List extends Command {
         `
       }
 
+      if (flags.assignee) {
+        assigneeField = `
+          assignees(first: 100) {
+            edges {
+              node {
+                login
+              }
+            }
+          }
+        `
+      }
+
+      if (flags.detailed) {
+        detailedField = `
+          bodyText
+          url
+        `
+      }
+
       if (flags.label) {
         const labelsArr = flags.label.split(',').map(label => `"${label}"`)
-        var labelsArgument = `labels: [${labelsArr}]`
-        var labelsField = `
+        labelsArgument = `labels: [${labelsArr}]`
+
+        labelsField = `
           labels(first: 100) {
             edges {
               node {
                 name
               }
             }
+          }
+        `
+      }
+
+      if (flags.milestone) {
+        milestoneField = `
+          milestone {
+            title
           }
         `
       }
@@ -83,16 +102,17 @@ export default class List extends Command {
             name: "${repo}"
           ) {
             issues(
-              ${beforeArgument || ''}
-              ${labelsArgument || ''}
-              last: ${numberOfItems || 1},
-              ${statesArgument || ''}
+              ${beforeArgument}
+              ${labelsArgument}
+              last: ${numberOfItems},
+              ${statesArgument}
             ) {
               edges {
                 node {
                   ${assigneeField}
                   ${detailedField}
                   ${labelsField}
+                  ${milestoneField}
 
                   author {
                     login
@@ -103,7 +123,7 @@ export default class List extends Command {
                   url
                 }
               }
-              ${paginationFields || ''}
+              ${paginationFields}
             }
           }
         }
@@ -170,6 +190,14 @@ export default class List extends Command {
           if (!issueContainsLabels) {
             continue
           }
+        }
+
+        if (!node.milestone) {
+          continue
+        }
+
+        if (node.milestone.title !== flags.milestone) {
+          continue
         }
 
         dateCreated = moment(node.createdAt).fromNow()
