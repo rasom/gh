@@ -13,7 +13,11 @@ export default class List extends Command {
     assignee: flags.string({ char: 'A', description: 'Filter issues by assignee' }),
     all: flags.boolean({ char: 'a', description: 'List all issues' }),
     detailed: flags.boolean({ char: 'd', description: 'Show detailed version of issues' }),
-    label: flags.boolean({ char: 'L', description: 'Show labels of each issues' }),
+    label: flags.string({
+      char: 'L',
+      description: 'Filter issues by label(s). If multiple labels they should be comma separated',
+    }),
+    milestone: flags.boolean({ char: 'M', description: 'Filter issues by milestone' }),
     repo: flags.string({ char: 'r', description: 'The repo to fetch issues from' }),
     state: flags.string({ char: 'S', description: 'Filter by closed or open issues' }),
     user: flags.string({ char: 'u', description: 'The owner of the repository' }),
@@ -25,54 +29,49 @@ export default class List extends Command {
     const repo = flags.repo || this.remoteRepo
     const state = (flags.state || 'OPEN').toUpperCase()
 
-    const isPaginating = flags.all
-
-    const assigneeField = flags.assignee
-      ? `
-          assignees(first: 100) {
-            edges {
-              node {
-                login
+    const generateQuery = (hasPreviousPage?: boolean, endCursor?: string) => {
+      const assigneeField = flags.assignee
+        ? `
+            assignees(first: 100) {
+              edges {
+                node {
+                  login
+                }
               }
             }
+          `
+        : ''
+
+      const detailedField = flags.detailed
+        ? `
+            bodyText
+            url
+          `
+        : ''
+
+      if (flags.all) {
+        var beforeArgument = hasPreviousPage ? `before: "${endCursor}",` : ''
+        var numberOfItems = 2 // TODO: change number of items to be realistic amount
+        var statesArgument = `states: ${state}`
+
+        var paginationFields = `
+          pageInfo {
+            startCursor
+            hasPreviousPage
           }
         `
-      : ''
+      }
 
-    const detailedField = flags.detailed
-      ? `
-          bodyText
-          url
-        `
-      : ''
-
-    const labelField = flags.label
-      ? `
+      if (flags.label) {
+        const labelsArr = flags.label.split(',').map(label => `"${label}"`)
+        var labelsArgument = `labels: [${labelsArr}]`
+        var labelsField = `
           labels(first: 100) {
             edges {
               node {
                 name
               }
             }
-          }
-        `
-      : ''
-
-    const generateQuery = (hasPreviousPage?: boolean, endCursor?: string) => {
-      let beforeArgument = ''
-      let numberOfItems = 1 // 5
-      let paginationFields = ''
-      let statesArgument = ''
-
-      if (isPaginating) {
-        beforeArgument = hasPreviousPage ? `before: "${endCursor}",` : ''
-        numberOfItems = 2 // 100
-        statesArgument = `states: ${state}`
-
-        paginationFields = `
-          pageInfo {
-            startCursor
-            hasPreviousPage
           }
         `
       }
@@ -84,15 +83,16 @@ export default class List extends Command {
             name: "${repo}"
           ) {
             issues(
-              last: ${numberOfItems},
-              ${beforeArgument}
-              ${statesArgument}
+              ${beforeArgument || ''}
+              ${labelsArgument || ''}
+              last: ${numberOfItems || 1},
+              ${statesArgument || ''}
             ) {
               edges {
                 node {
                   ${assigneeField}
                   ${detailedField}
-                  ${labelField}
+                  ${labelsField}
 
                   author {
                     login
@@ -103,7 +103,7 @@ export default class List extends Command {
                   url
                 }
               }
-              ${paginationFields}
+              ${paginationFields || ''}
             }
           }
         }
@@ -126,8 +126,8 @@ export default class List extends Command {
       }
 
       if (firstCall) {
-        response = await graphQL.request<IRepoIssues>(generateQuery())
         console.log('generateQuery()', generateQuery())
+        response = await graphQL.request<IRepoIssues>(generateQuery())
       } else {
         response = await graphQL.request<IRepoIssues>(
           generateQuery(issues.pageInfo.hasPreviousPage, issues.pageInfo.startCursor)
@@ -161,6 +161,17 @@ export default class List extends Command {
           }
         }
 
+        if (flags.label) {
+          // Check if issue contains ALL labels passed in
+          const labels: array = flags.label.split(',')
+          const returnedLabels: string = node.labels.edges.map(label => label.node.name).join(',')
+          const issueContainsLabels: boolean = labels.every(label => returnedLabels.includes(label))
+
+          if (!issueContainsLabels) {
+            continue
+          }
+        }
+
         dateCreated = moment(node.createdAt).fromNow()
 
         formattedIssue = `${chalk.green(`#${node.number}`)} ${node.title} ${chalk.magenta(
@@ -171,16 +182,7 @@ export default class List extends Command {
           formattedIssue = `
             ${formattedIssue}
             ${node.bodyText}
-            ${node.url}
-          `
-        }
-
-        if (flags.label) {
-          const labels: string = node.labels.edges.map(label => label.node.name).join(', ')
-
-          formattedIssue = `
-            ${formattedIssue}
-            ${labels && `Labels: ${labels}`}
+            ${chalk.cyan(node.url)}
           `
         }
 
