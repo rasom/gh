@@ -4,6 +4,7 @@ import { IRepoIssues } from '../../interfaces'
 import chalk from 'chalk'
 import * as moment from 'moment'
 import { graphQL } from '../../graphQL'
+import { log } from '../../logger'
 
 export default class List extends Command {
   public static description = 'describe the command here'
@@ -131,9 +132,11 @@ export default class List extends Command {
       `
     }
 
-    const getIssues = async (issues?, firstCall?: boolean) => {
-      let response
+    let response
+    let query
 
+    // Recursive function to handle pagination
+    const getIssues = async (issues?, firstCall?: boolean) => {
       if (issues) {
         printIssues(issues)
 
@@ -147,12 +150,17 @@ export default class List extends Command {
       }
 
       if (firstCall) {
-        console.log('generateQuery()', generateQuery())
-        response = await graphQL.request<IRepoIssues>(generateQuery())
+        query = generateQuery()
+
+        log.query(query)
+
+        response = await graphQL.request<IRepoIssues>(query)
       } else {
-        response = await graphQL.request<IRepoIssues>(
-          generateQuery(issues.pageInfo.hasPreviousPage, issues.pageInfo.startCursor)
-        )
+        query = generateQuery(issues.pageInfo.hasPreviousPage, issues.pageInfo.startCursor)
+
+        // log.query(query)
+
+        response = await graphQL.request<IRepoIssues>(query)
       }
 
       getIssues({
@@ -217,7 +225,7 @@ export default class List extends Command {
           `
         }
 
-        this.log(formattedIssue.replace(trimSpaces, ''), '\n')
+        log(formattedIssue.replace(trimSpaces, ''), '\n')
       }
     }
 

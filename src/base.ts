@@ -4,6 +4,7 @@ import * as simpleGit from 'simple-git/promise'
 import { find } from 'lodash'
 import Command, { flags } from '@oclif/command'
 import * as fs from 'fs'
+import { log } from './logger'
 import * as userhome from 'userhome'
 
 const config = JSON.parse(fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' }))
@@ -12,9 +13,14 @@ const git = simpleGit()
 
 export default abstract class extends Command {
   public static flags = {
-    loglevel: flags.string({ options: ['error', 'warn', 'info', 'debug'] }),
     remote: flags.string({
       description: 'Override the default_remote setting in ~/.default.gh.json',
+    }),
+    debug: flags.boolean({
+      description: 'A more complete info flag, which leaks more privacy sensitive data by default.',
+    }),
+    info: flags.boolean({
+      description: 'The info flag is useful for basic debugging',
     }),
   }
 
@@ -23,6 +29,9 @@ export default abstract class extends Command {
   public remoteRepo
 
   public async init() {
+    this.config.debug = 1
+    this.debug.enabled = true
+
     try {
       var isGitRepo = await git.checkIsRepo()
     } catch (e) {
@@ -34,24 +43,15 @@ export default abstract class extends Command {
     }
 
     this.setGlobalFlags()
+    this.initLogger()
 
     await this.setUserAndRepo()
   }
 
-  public log(...msg) {
-    switch (this.flags.loglevel) {
-      case 'warn':
-        console.warn(...msg)
-        break
-      case 'info':
-        console.log(...msg)
-        break
-      case 'debug':
-        console.error(...msg)
-        break
-      default:
-        console.log(...msg)
-    }
+  private initLogger() {
+    console.log('this', this)
+    process.env.DEBUG = this.flags.debug
+    process.env.INFO = this.flags.info
   }
 
   private setGlobalFlags() {
@@ -87,6 +87,7 @@ export default abstract class extends Command {
 
     this.remoteUser = remote.match('github[.]com.(.*)/')![1]
     this.remoteRepo = remote.match(`${this.remoteUser}/(.*)[.]git`)![1]
-    console.log('remote', this.remoteRepo, this.remoteUser)
+
+    log.debug('remote', this.remoteRepo, this.remoteUser)
   }
 }
