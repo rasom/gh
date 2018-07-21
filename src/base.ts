@@ -18,6 +18,7 @@ export default abstract class extends Command {
     }),
   }
 
+  public flags
   public remoteUser
   public remoteRepo
   public client
@@ -49,7 +50,11 @@ export default abstract class extends Command {
       throw new Error('Current directory is not a git repo')
     }
 
-    this.setGlobalFlags()
+    // this.setGlobalFlags()
+    const { flags } = this.parse(this.constructor)
+
+    this.flags = flags
+
     await this.setUserAndRepo()
   }
 

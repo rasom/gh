@@ -184,7 +184,7 @@ export default class List extends Command {
 
         if (flags.label) {
           // Check if issue contains ALL labels passed in
-          const labels: array = flags.label.split(',')
+          const labels: string[] = flags.label.split(',')
           const returnedLabels: string = node.labels.edges.map(label => label.node.name).join(',')
           const issueContainsLabels: boolean = labels.every(label => returnedLabels.includes(label))
 
@@ -193,12 +193,14 @@ export default class List extends Command {
           }
         }
 
-        if (!node.milestone) {
-          continue
-        }
+        if (flags.milestone) {
+          if (!node.milestone) {
+            continue
+          }
 
-        if (node.milestone.title !== flags.milestone) {
-          continue
+          if (node.milestone.title !== flags.milestone) {
+            continue
+          }
         }
 
         dateCreated = moment(node.createdAt).fromNow()
