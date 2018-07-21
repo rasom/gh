@@ -9,7 +9,7 @@ export default class List extends Command {
   public static description = 'describe the command here'
 
   public static flags = {
-    // ...Command.flags,
+    ...Command.flags,
     help: flags.help({ char: 'h' }),
     assignee: flags.string({ char: 'A', description: 'Filter issues by assignee' }),
     all: flags.boolean({ char: 'a', description: 'List all issues' }),

@@ -21,7 +21,22 @@ export default abstract class extends Command {
   public flags
   public remoteUser
   public remoteRepo
-  public client
+
+  public async init() {
+    try {
+      var isGitRepo = await git.checkIsRepo()
+    } catch (e) {
+      throw new Error(`Error when checking if current dir is a git repository: ${e}`)
+    }
+
+    if (!isGitRepo) {
+      throw new Error('Current directory is not a git repo')
+    }
+
+    this.setGlobalFlags()
+
+    await this.setUserAndRepo()
+  }
 
   public log(...msg) {
     switch (this.flags.loglevel) {
@@ -37,34 +52,6 @@ export default abstract class extends Command {
       default:
         console.log(...msg)
     }
-  }
-
-  public async init() {
-    try {
-      var isGitRepo = await git.checkIsRepo()
-    } catch (e) {
-      throw new Error(`Error when checking if current dir is a git repository: ${e}`)
-    }
-
-    if (!isGitRepo) {
-      throw new Error('Current directory is not a git repo')
-    }
-
-    // this.setGlobalFlags()
-    const { flags } = this.parse(this.constructor)
-
-    this.flags = flags
-
-    await this.setUserAndRepo()
-  }
-
-  public async catch(err) {
-    throw new Error(err)
-    // handle any error from the command
-  }
-
-  public async finally() {
-    // called after run and catch regardless of whether or not the command errored
   }
 
   private setGlobalFlags() {
