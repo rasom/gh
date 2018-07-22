@@ -13,7 +13,10 @@ export default class List extends Command {
     ...Command.flags,
     help: flags.help({ char: 'h' }),
     all: flags.boolean({ char: 'a', description: 'List all issues' }),
-    assignee: flags.string({ char: 'A', description: 'Filter issues by assignee' }),
+    assignee: flags.string({
+      char: 'A',
+      description: 'Filter issues by assignee(case sensitive) login id',
+    }),
     detailed: flags.boolean({ char: 'd', description: 'Show detailed version of issues' }),
     label: flags.string({
       char: 'L',
@@ -46,7 +49,6 @@ export default class List extends Command {
       if (flags.all) {
         beforeArgument = hasPreviousPage ? `before: "${endCursor}",` : ''
         numberOfItems = 2 // TODO: change number of items to be realistic amount
-        statesArgument = `states: ${state}`
 
         paginationFields = `
           pageInfo {
@@ -96,6 +98,10 @@ export default class List extends Command {
             title
           }
         `
+      }
+
+      if (flags.state) {
+        statesArgument = `states: ${state}`
       }
 
       return `
