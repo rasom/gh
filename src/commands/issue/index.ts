@@ -1,10 +1,10 @@
 import { Command, flags } from '@oclif/command'
 
 export default class Issue extends Command {
-  public static description = 'describe the command here'
+  public static description = 'List, Create & Modify issues'
 
   public static flags = {
-    // ...Command.flags,
+    ...Command.flags,
     help: flags.help({ char: 'h' }),
   }
 

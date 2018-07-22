@@ -7,7 +7,7 @@ import { graphQL } from '../../graphQL'
 import { log } from '../../logger'
 
 export default class List extends Command {
-  public static description = 'describe the command here'
+  public static description = 'List & filter issues'
 
   public static flags = {
     ...Command.flags,
@@ -32,7 +32,7 @@ export default class List extends Command {
     const repo = flags.repo || this.remoteRepo
     const state = (flags.state || 'OPEN').toLocaleUpperCase()
 
-    const generateQuery = (hasPreviousPage?: boolean, endCursor?: string) => {
+    function generateQuery(hasPreviousPage?: boolean, endCursor?: string) {
       let assigneeField = ''
       let beforeArgument = ''
       let detailedField = ''
@@ -137,7 +137,7 @@ export default class List extends Command {
     let query
 
     // Recursive function to handle pagination
-    const getIssues = async (issues?, firstCall?: boolean) => {
+    async function getIssues(issues?, firstCall?: boolean) {
       if (issues) {
         printIssues(issues)
 
@@ -170,7 +170,7 @@ export default class List extends Command {
       })
     }
 
-    const printIssues = issues => {
+    function printIssues(issues) {
       let dateCreated
       let node
       let formattedIssue

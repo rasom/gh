@@ -9,22 +9,24 @@ export function log(...msg) {
 
 export namespace log {
   export function query(msg) {
-    if (process.env.DEBUG) {
+    if (process.env.DEBUG === 'true') {
       console.log(
         chalk.black.bgWhiteBright('\nGraphQL Query ===> \n\n'),
         chalk.cyan(prettier.format(msg, { parser: 'graphql' }))
       )
+    } else if (process.env.NODE_ENV === 'testing') {
+      console.log(msg.replace(/(\n|\s)/gm, ''))
     }
   }
 
   export function info(...msg) {
-    if (process.env.INFO) {
+    if (process.env.INFO === 'true') {
       console.log('Using verbose logging: ', ...msg)
     }
   }
 
   export function debug(...msg) {
-    if (process.env.DEBUG) {
+    if (process.env.DEBUG === 'true') {
       console.log(chalk.yellow('Using debug logging: \n'), ...msg)
     }
   }
