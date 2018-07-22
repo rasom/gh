@@ -12,24 +12,25 @@ export default class List extends Command {
   public static flags = {
     ...Command.flags,
     help: flags.help({ char: 'h' }),
-    assignee: flags.string({ char: 'A', description: 'Filter issues by assignee' }),
     all: flags.boolean({ char: 'a', description: 'List all issues' }),
+    assignee: flags.string({ char: 'A', description: 'Filter issues by assignee' }),
     detailed: flags.boolean({ char: 'd', description: 'Show detailed version of issues' }),
     label: flags.string({
       char: 'L',
       description: 'Filter issues by label(s). If multiple labels they should be comma separated',
     }),
-    milestone: flags.string({ char: 'M', description: 'Filter issues by milestone' }),
-    repo: flags.string({ char: 'r', description: 'The repo to fetch issues from' }),
+    milestone: flags.string({
+      char: 'M',
+      description: 'Filter issues by milestone (case insensitive)',
+    }),
     state: flags.string({ char: 'S', description: 'Filter by closed or open issues' }),
-    user: flags.string({ char: 'u', description: 'The owner of the repository' }),
   }
 
   public async run() {
     const { flags } = this.parse(List)
     const user = flags.user || this.remoteUser
     const repo = flags.repo || this.remoteRepo
-    const state = (flags.state || 'OPEN').toUpperCase()
+    const state = (flags.state || 'OPEN').toLocaleUpperCase()
 
     const generateQuery = (hasPreviousPage?: boolean, endCursor?: string) => {
       let assigneeField = ''
@@ -206,7 +207,7 @@ export default class List extends Command {
             continue
           }
 
-          if (node.milestone.title !== flags.milestone) {
+          if (node.milestone.title.toLocaleUpperCase() !== flags.milestone.toLocaleUpperCase()) {
             continue
           }
         }

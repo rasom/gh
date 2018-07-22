@@ -13,15 +13,17 @@ const git = simpleGit()
 
 export default abstract class extends Command {
   public static flags = {
-    remote: flags.string({
-      description: 'Override the default_remote setting in ~/.default.gh.json',
-    }),
     debug: flags.boolean({
       description: 'A more complete info flag, which leaks more privacy sensitive data by default.',
     }),
     info: flags.boolean({
       description: 'The info flag is useful for basic debugging',
     }),
+    remote: flags.string({
+      description: 'Override the default_remote setting in ~/.default.gh.json',
+    }),
+    repo: flags.string({ char: 'r', description: 'The repo to fetch issues from' }),
+    user: flags.string({ char: 'u', description: 'The owner of the repository' }),
   }
 
   public flags
@@ -29,9 +31,6 @@ export default abstract class extends Command {
   public remoteRepo
 
   public async init() {
-    this.config.debug = 1
-    this.debug.enabled = true
-
     try {
       var isGitRepo = await git.checkIsRepo()
     } catch (e) {
@@ -49,7 +48,6 @@ export default abstract class extends Command {
   }
 
   private initLogger() {
-    console.log('this', this)
     process.env.DEBUG = this.flags.debug
     process.env.INFO = this.flags.info
   }
@@ -88,6 +86,10 @@ export default abstract class extends Command {
     this.remoteUser = remote.match('github[.]com.(.*)/')![1]
     this.remoteRepo = remote.match(`${this.remoteUser}/(.*)[.]git`)![1]
 
-    log.debug('remote', this.remoteRepo, this.remoteUser)
+    log.debug(
+      `Remote: ${remoteName} \n`,
+      `Repo: ${this.remoteRepo} \n`,
+      `Owner: ${this.remoteUser} \n`
+    )
   }
 }

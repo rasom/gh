@@ -1,7 +1,7 @@
 ## Global Flags
 
-- Change `--insane` to `--yolo`
-- Change `--verbose` to `--debug`
+- Change `--verbose` to `--info`
+- Change `--insane` to `--debug`
 
 ## Calling Subcommands
 

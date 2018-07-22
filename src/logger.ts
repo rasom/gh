@@ -9,7 +9,7 @@ export function log(...msg) {
 
 export namespace log {
   export function query(msg) {
-    if (process.env.INFO || process.env.DEBUG) {
+    if (process.env.DEBUG) {
       console.log(
         chalk.black.bgWhiteBright('\nGraphQL Query ===> \n\n'),
         chalk.cyan(prettier.format(msg, { parser: 'graphql' }))
@@ -25,7 +25,7 @@ export namespace log {
 
   export function debug(...msg) {
     if (process.env.DEBUG) {
-      console.log('Using debug logging: ', ...msg)
+      console.log(chalk.yellow('Using debug logging: \n'), ...msg)
     }
   }
 }
