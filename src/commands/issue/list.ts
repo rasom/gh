@@ -5,6 +5,7 @@ import chalk from 'chalk'
 import * as moment from 'moment'
 import { graphQL } from '../../graphQL'
 import { log } from '../../logger'
+import { config } from '../../config'
 
 export default class List extends Command {
   public static description = 'List & filter issues'
@@ -42,13 +43,13 @@ export default class List extends Command {
       let labelsArgument = ''
       let labelsField = ''
       let milestoneField = ''
-      let numberOfItems = 1
+      let numberOfItems = config.graphql.node_limit
       let paginationFields = ''
       let statesArgument = ''
 
       if (flags.all) {
         beforeArgument = hasPreviousPage ? `before: "${endCursor}",` : ''
-        numberOfItems = 2 // TODO: change number of items to be realistic amount
+        numberOfItems = config.graphql.pagination_node_limit
 
         paginationFields = `
           pageInfo {

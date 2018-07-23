@@ -3,11 +3,8 @@
 import * as simpleGit from 'simple-git/promise'
 import { find } from 'lodash'
 import Command, { flags } from '@oclif/command'
-import * as fs from 'fs'
 import { log } from './logger'
-import * as userhome from 'userhome'
-
-const config = JSON.parse(fs.readFileSync(userhome('.gh.json'), { encoding: 'utf8' }))
+import { config } from './config'
 
 const git = simpleGit()
 
