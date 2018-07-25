@@ -80,8 +80,16 @@ export default abstract class extends Command {
       remote = remotesArr[0].refs.fetch
     }
 
-    this.remoteUser = remote.match('github[.]com.(.*)/')![1]
-    this.remoteRepo = remote.match(`${this.remoteUser}/(.*)[.]git`)![1]
+    const {
+      repo = remote.match(`${this.remoteUser}/(.*)[.]git`)![1],
+      user = remote.match('github[.]com.(.*)/')![1],
+    } = this.flags
+
+    this.remoteInfo = {
+      remote,
+      repo,
+      user,
+    }
 
     log.debug(
       `Remote: ${remoteName} \n`,
