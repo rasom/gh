@@ -1,16 +1,11 @@
 import { flags } from '@oclif/command'
-import { IRepoIssues } from '../../interfaces'
+import { IRepoIssues, IPaginationInfo, IRemoteInfo } from '../../interfaces'
 import chalk from 'chalk'
 import * as moment from 'moment'
 import Command from '../../base'
 import { config } from '../../config'
-import { graphQL } from '../../graphQL'
+import { compressQuery, graphQL } from '../../graphQL'
 import { log } from '../../logger'
-
-export interface IPaginationInfo {
-  hasPreviousPage?: boolean
-  startCursor?: string
-}
 
 export default class List extends Command {
   public static description = 'List & filter issues'
@@ -62,7 +57,7 @@ export default class List extends Command {
 
 export async function orchestrate(
   flags,
-  remoteInfo,
+  remoteInfo: IRemoteInfo,
   paginationInProgress,
   paginationCursor?
 ): Promise<IPaginationInfo> {
@@ -78,7 +73,12 @@ export async function orchestrate(
   return response.repository.issues.pageInfo
 }
 
-export function mapArgsToQuery(flags, remoteInfo, paginationInProgress, paginationCursor): string {
+export function mapArgsToQuery(
+  flags,
+  remoteInfo: IRemoteInfo,
+  paginationInProgress,
+  paginationCursor?
+): string {
   let assigneeField = ''
   let beforeArgument = ''
   let detailedField = ''
@@ -123,7 +123,7 @@ export function mapArgsToQuery(flags, remoteInfo, paginationInProgress, paginati
   }
 
   if (flags.label) {
-    const labelsArr = flags.label.split(',').map(label => `"${label}"`)
+    const labelsArr = flags.label.split(',').map(label => `"${label.trim()}"`)
     labelsArgument = `labels: [${labelsArr}]`
 
     labelsField = `
@@ -151,7 +151,7 @@ export function mapArgsToQuery(flags, remoteInfo, paginationInProgress, paginati
     statesArgument = `states: ${state}`
   }
 
-  return `
+  const query = `
     {
       repository(
         owner: "${user}",
@@ -184,6 +184,8 @@ export function mapArgsToQuery(flags, remoteInfo, paginationInProgress, paginati
       }
     }
   `
+
+  return compressQuery(query)
 }
 
 export async function requestIssues(query): Promise<IRepoIssues> {
@@ -201,7 +203,6 @@ export async function requestIssues(query): Promise<IRepoIssues> {
 export function formatResponse(flags, response): string[] {
   const issues = response.repository.issues
   const issuesLength = issues.edges.length - 1
-  const trimSpaces = /^\s+|\s+$/gm
 
   const formattedIssues: string[] = []
   let node
@@ -221,7 +222,7 @@ export function formatResponse(flags, response): string[] {
 
     if (flags.label) {
       // Check if issue contains ALL labels passed in
-      const labels: string[] = flags.label.split(',')
+      const labels: string[] = flags.label.split(',').map(label => label.trim())
       const returnedLabels: string = node.labels.edges.map(label => label.node.name).join(',')
       const issueContainsLabels: boolean = labels.every(label => returnedLabels.includes(label))
 
@@ -254,7 +255,7 @@ export function formatResponse(flags, response): string[] {
       `
     }
 
-    formattedIssues.push(`${formattedIssue.replace(trimSpaces, '')}\n`)
+    formattedIssues.push(`${formattedIssue}\n`)
   }
 
   return formattedIssues

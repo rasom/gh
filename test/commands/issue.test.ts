@@ -1,70 +1,74 @@
-import { expect, test } from '@oclif/test'
+import { expect } from '@oclif/test'
+import { responses } from './mock/responses'
 import { queries } from './mock/queries'
+import { stdout } from './mock/stdout'
 import { user, repo } from './mock/user'
-import {} from '../../src/commands/issue/list'
-const { assignee, base, detailed, label, milestone, state } = queries.issue.list
+import { formatResponse, mapArgsToQuery, requestIssues } from '../../src/commands/issue/list'
+import { compressQuery } from '../../src/graphQL'
+import { equal } from 'assert'
 
-describe('`issue:list` Maps user args to graphQL query', () => {
-  test
-    .stdout()
-    .command(['issue:list', '-u', user, '-r', repo])
-    .it('runs issue:list', output => {
-      expect(output.stdout).to.contain(base.query)
-    })
+const mockResponses = responses.issue.list
+const mockQueries = queries.issue.list
 
-  test
-    .stdout()
-    .command(['issue:list', '-A', user, '-u', user, '-r', repo])
-    .it(`runs issue:list --assignee ${user}`, output => {
-      expect(output.stdout).to.contain(assignee)
-    })
+describe('`issue:list` Maps args to query', () => {
+  const remoteInfo = {
+    user,
+    repo,
+    remote: 'origin',
+  }
 
-  test
-    .stdout()
-    .command(['issue:list', '-d', '-u', user, '-r', repo])
-    .it(`runs issue:list --detailed`, output => {
-      expect(output.stdout).to.contain(detailed)
-    })
+  function generateQuery(flags, paginationCursor?) {
+    const query = mapArgsToQuery(
+      flags,
+      remoteInfo,
+      paginationCursor ? true : false,
+      paginationCursor
+    )
 
-  test
-    .stdout()
-    .command(['issue:list', '-L', 'bug,good first issue', '-u', user, '-r', repo])
-    .it(`runs issue:list --label 'bug,good first issue'`, output => {
-      expect(output.stdout).to.contain(label)
-    })
+    return compressQuery(query)
+  }
 
-  test
-    .stdout()
-    .command(['issue:list', '-M', 'milestone 1', '-u', user, '-r', repo])
-    .it(`runs issue:list --milestone 'milestone 1'`, output => {
-      expect(output.stdout).to.contain(milestone)
-    })
+  it('builds query for: issue:list', () => {
+    expect(generateQuery({})).to.equal(mockQueries.base)
+  })
 
-  test
-    .stdout()
-    .command(['issue:list', '-S', 'closed', '-u', user, '-r', repo])
-    .it(`runs issue:list --state closed`, output => {
-      expect(output.stdout).to.contain(state)
-    })
+  it('builds query for: issue:list --all', () => {
+    expect(generateQuery({ all: true }, 'Y3Vyc29yOnYyOpHOFHDA0A==')).to.equal(mockQueries.all)
+  })
 
-  test
-    .stdout()
-    .command(['issue:list', '-S', 'closed', '-u', user, '-r', repo])
-    .it(`runs issue:list --state closed`, output => {
-      expect(output.stdout).to.contain(state)
-    })
+  it(`builds query for: issue:list --assignee ${user}`, () => {
+    expect(generateQuery({ assignee: user })).to.equal(mockQueries.assignee)
+  })
+
+  it('builds query for: issue:list --detailed', () => {
+    expect(generateQuery({ detailed: true })).to.equal(mockQueries.detailed)
+  })
+
+  it(`builds query for: issue:list --label 'bug,good first issue'`, () => {
+    expect(generateQuery({ label: 'bug, good first issue' })).to.contain(mockQueries.label)
+  })
+
+  it(`builds query for: issue:list --milestone 'milestone 1'`, () => {
+    expect(generateQuery({ milestone: 'milestone 1' })).to.contain(mockQueries.milestone)
+  })
+
+  it('builds query for: issue:list --state closed', () => {
+    expect(generateQuery({ state: 'closed' })).to.contain(mockQueries.state)
+  })
 })
 
-describe('`issue:list` Maps query to request', () => {})
+describe('GitHub graphQL api works correctly', () => {
+  it('returns correct response given base query', async () => {
+    const response = await requestIssues(mockResponses.base.request)
 
-// describe('`issue:list` Maps query to request', () => {
-//   test.nock('https://api.github.com', api =>
-//     api
-//       .post('/graphql')
-//       .reply(200, [
-//         { access_token: { token: 'somethingelse' } },
-//         { access_token: { token: 'foobar', expires_in: 60 } },
-//         {},
-//       ])
-//   )
-// })
+    expect(JSON.stringify(response)).to.equal(mockResponses.base.response)
+  })
+})
+
+describe('`issue:list` Formats/Converts response object correctly for console', () => {
+  it('formats response for: issue:list', () => {
+    const formattedResponse = formatResponse({}, JSON.parse(mockResponses.base.response))
+
+    expect(formattedResponse).to.equal()
+  })
+})

@@ -70,6 +70,7 @@
     "prepack": "rm -rf lib && tsc && oclif-dev manifest && oclif-dev readme && npm shrinkwrap",
     "prepare": "rm -rf lib && tsc",
     "test": "cross-env NODE_ENV=testing mocha \"test/**/*.test.ts\"",
+    "test:watch": "cross-env NODE_ENV=testing mocha --watch \"test/**/*.test.ts\"",
     "test:full": "nyc mocha --forbid-only \"test/**/*.test.ts\"",
     "version": "oclif-dev readme && git add README.md",
     "format": "prettier-standard 'lib/*.js' && prettier-standard 'lib/**/*.js' && prettier-standard 'bin/*.js'"

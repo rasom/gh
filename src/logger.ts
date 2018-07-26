@@ -16,8 +16,6 @@ export namespace log {
         chalk.black.bgWhiteBright('\nGraphQL Query ===> \n\n'),
         chalk.cyan(prettier.format(msg, { parser: 'graphql' }))
       )
-    } else if (process.env.NODE_ENV === 'testing') {
-      console.log(msg.replace(/(\n|\s)/gm, ''))
     }
   }
 
