@@ -1,11 +1,10 @@
 import { expect, test } from '@oclif/test'
 import { queries } from './mock/queries'
 import { user, repo } from './mock/user'
+import {} from '../../src/commands/issue/list'
 const { assignee, base, detailed, label, milestone, state } = queries.issue.list
 
-import List from '../../src/commands/issue/list'
-
-xdescribe('issue', () => {
+describe('`issue:list` Maps user args to graphQL query', () => {
   test
     .stdout()
     .command(['issue:list', '-u', user, '-r', repo])
@@ -56,13 +55,16 @@ xdescribe('issue', () => {
     })
 })
 
-describe('issue', () => {
-  test
-    .nock('https://api.github.com', api => api.post('/graphql').reply(200, base.response))
-    .stdout()
-    .do(async () => {
-      await List.hi('msg')
-    })
-    .do(ctx => expect(ctx.stdout).to.equal('json output: {"a":"foobar"}\n'))
-    .it('uses util.format()')
-})
+describe('`issue:list` Maps query to request', () => {})
+
+// describe('`issue:list` Maps query to request', () => {
+//   test.nock('https://api.github.com', api =>
+//     api
+//       .post('/graphql')
+//       .reply(200, [
+//         { access_token: { token: 'somethingelse' } },
+//         { access_token: { token: 'foobar', expires_in: 60 } },
+//         {},
+//       ])
+//   )
+// })

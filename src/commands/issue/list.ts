@@ -1,15 +1,15 @@
 import { flags } from '@oclif/command'
-// import { IRepoIssues } from '../../interfaces'
+import { IRepoIssues } from '../../interfaces'
 import chalk from 'chalk'
 import * as moment from 'moment'
 import Command from '../../base'
 import { config } from '../../config'
-import { request } from '../../graphQL'
+import { graphQL } from '../../graphQL'
 import { log } from '../../logger'
 
 export interface IPaginationInfo {
   hasPreviousPage?: boolean
-  endCursor?: string
+  startCursor?: string
 }
 
 export default class List extends Command {
@@ -38,15 +38,47 @@ export default class List extends Command {
   public async run() {
     const { flags } = this.parse(List)
 
-    try {
-      getIssues(flags, this.remoteInfo, null, true)
-    } catch (e) {
-      throw new Error(`Error making initial issues request: ${e}`)
+    let paginationInProgress = flags.all
+
+    if (paginationInProgress) {
+      let paginationCursor = null
+
+      while (paginationInProgress) {
+        const pageInfo = await orchestrate(
+          flags,
+          this.remoteInfo,
+          paginationInProgress,
+          paginationCursor
+        )
+
+        paginationInProgress = pageInfo.hasPreviousPage
+        paginationCursor = pageInfo.startCursor
+      }
+    } else {
+      orchestrate(flags, this.remoteInfo, false)
     }
   }
 }
 
-export function generateQuery(flags, remoteInfo, paginationInfo?: IPaginationInfo) {
+export async function orchestrate(
+  flags,
+  remoteInfo,
+  paginationInProgress,
+  paginationCursor?
+): Promise<IPaginationInfo> {
+  let query = mapArgsToQuery(flags, remoteInfo, paginationInProgress, paginationCursor)
+  log.query(query)
+
+  let response = await requestIssues(query)
+  log.debug(response.repository.issues)
+
+  let formattedIssues = formatResponse(flags, response)
+  log(...formattedIssues)
+
+  return response.repository.issues.pageInfo
+}
+
+export function mapArgsToQuery(flags, remoteInfo, paginationInProgress, paginationCursor): string {
   let assigneeField = ''
   let beforeArgument = ''
   let detailedField = ''
@@ -59,15 +91,8 @@ export function generateQuery(flags, remoteInfo, paginationInfo?: IPaginationInf
 
   const { repo, user } = remoteInfo
 
-  if (flags.all) {
-    let endCursor
-    let hasPreviousPage
-
-    if (paginationInfo) {
-      ;({ endCursor, hasPreviousPage } = paginationInfo)
-    }
-
-    beforeArgument = hasPreviousPage ? `before: "${endCursor}",` : ''
+  if (paginationInProgress) {
+    beforeArgument = paginationCursor ? `before: "${paginationCursor}",` : ''
     numberOfItems = config.graphql.pagination_node_limit
 
     paginationFields = `
@@ -161,46 +186,24 @@ export function generateQuery(flags, remoteInfo, paginationInfo?: IPaginationInf
   `
 }
 
-export async function getIssues(flags, remoteInfo, issues?, firstCall?: boolean) {
-  if (issues) {
-    printIssues(flags, issues)
-
-    if (!issues.pageInfo) {
-      return
-    }
-
-    if (!issues.pageInfo.hasPreviousPage) {
-      return
-    }
-  }
-
+export async function requestIssues(query): Promise<IRepoIssues> {
   let response
 
-  if (firstCall) {
-    const query = generateQuery(flags, remoteInfo)
-
-    log.query(query)
-
-    response = await request(query)
-
-    log(response)
-  } else {
-    const query = generateQuery(flags, remoteInfo, issues.pageInfo)
-
-    // log.query(query)
-    response = await request(query)
+  try {
+    response = await graphQL.request<IRepoIssues>(query)
+  } catch (e) {
+    throw new Error(`Error making GitHub graphQL request ===> ${e}`)
   }
 
-  getIssues(flags, remoteInfo, {
-    edges: response.repository.issues.edges,
-    pageInfo: response.repository.issues.pageInfo,
-  })
+  return response
 }
 
-export function printIssues(flags, issues) {
+export function formatResponse(flags, response): string[] {
+  const issues = response.repository.issues
   const issuesLength = issues.edges.length - 1
   const trimSpaces = /^\s+|\s+$/gm
 
+  const formattedIssues: string[] = []
   let node
 
   for (let i = issuesLength; i >= 0; i--) {
@@ -251,6 +254,8 @@ export function printIssues(flags, issues) {
       `
     }
 
-    log(formattedIssue.replace(trimSpaces, ''), '\n')
+    formattedIssues.push(`${formattedIssue.replace(trimSpaces, '')}\n`)
   }
+
+  return formattedIssues
 }

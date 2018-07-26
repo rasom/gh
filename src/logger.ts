@@ -4,9 +4,9 @@ import * as prettier from 'prettier'
 import chalk from 'chalk'
 
 export function log(...msg) {
-  // if (process.env.NODE_ENV !== 'testing') {
-  console.log(...msg)
-  // }
+  if (process.env.NODE_ENV !== 'testing') {
+    console.log(...msg)
+  }
 }
 
 export namespace log {

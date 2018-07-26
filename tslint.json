@@ -6,8 +6,6 @@
     "no-increment-decrement": false,
     "no-var-keyword": false,
     "prefer-const": false,
-    "no-use-before-declare": true,
-    "no-use-before-define": true,
     "prettier": [
       true,
       {
