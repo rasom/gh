@@ -1,11 +1,11 @@
 import { flags } from '@oclif/command'
-import Command from '../../base'
 // import { IRepoIssues } from '../../interfaces'
 import chalk from 'chalk'
 import * as moment from 'moment'
+import Command from '../../base'
+import { config } from '../../config'
 import { request } from '../../graphQL'
 import { log } from '../../logger'
-import { config } from '../../config'
 
 export interface IPaginationInfo {
   hasPreviousPage?: boolean
@@ -38,11 +38,6 @@ export default class List extends Command {
   public async run() {
     const { flags } = this.parse(List)
 
-    const state = (flags.state || 'OPEN').toLocaleUpperCase()
-
-    let response
-    let query
-
     try {
       getIssues(flags, this.remoteInfo, null, true)
     } catch (e) {
@@ -65,7 +60,12 @@ export function generateQuery(flags, remoteInfo, paginationInfo?: IPaginationInf
   const { repo, user } = remoteInfo
 
   if (flags.all) {
-    const { hasPreviousPage, endCursor } = paginationInfo
+    let endCursor
+    let hasPreviousPage
+
+    if (paginationInfo) {
+      ;({ endCursor, hasPreviousPage } = paginationInfo)
+    }
 
     beforeArgument = hasPreviousPage ? `before: "${endCursor}",` : ''
     numberOfItems = config.graphql.pagination_node_limit
@@ -121,6 +121,8 @@ export function generateQuery(flags, remoteInfo, paginationInfo?: IPaginationInf
   }
 
   if (flags.state) {
+    const state = (flags.state || 'OPEN').toLocaleUpperCase()
+
     statesArgument = `states: ${state}`
   }
 

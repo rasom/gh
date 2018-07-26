@@ -24,8 +24,7 @@ export default abstract class extends Command {
   }
 
   public flags
-  public remoteUser
-  public remoteRepo
+  public remoteInfo
 
   public async init() {
     try {
@@ -80,10 +79,8 @@ export default abstract class extends Command {
       remote = remotesArr[0].refs.fetch
     }
 
-    const {
-      repo = remote.match(`${this.remoteUser}/(.*)[.]git`)![1],
-      user = remote.match('github[.]com.(.*)/')![1],
-    } = this.flags
+    const user = this.flags.user ? this.flags.user : remote.match('github[.]com.(.*)/')![1]
+    const repo = this.flags.repo ? this.flags.repo : remote.match(`${user}/(.*)[.]git`)![1]
 
     this.remoteInfo = {
       remote,
@@ -91,10 +88,6 @@ export default abstract class extends Command {
       user,
     }
 
-    log.debug(
-      `Remote: ${remoteName} \n`,
-      `Repo: ${this.remoteRepo} \n`,
-      `Owner: ${this.remoteUser} \n`
-    )
+    log.debug(`Remote: ${remoteName} \n`, `Repo: ${repo} \n`, `Owner: ${user} \n`)
   }
 }
