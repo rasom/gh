@@ -1,7 +1,10 @@
 // Info on this pattern: https://www.bennadel.com/blog/3250-defining-functions-with-properties-using-typescript-declaration-merging-in-angular-2-4-9.htm
 
 import * as prettier from 'prettier'
-import chalk from 'chalk'
+import ctx from 'chalk'
+import { config } from './config'
+
+export const chalk = new ctx.constructor({ enabled: config.color })
 
 export function log(...messages) {
   if (process.env.NODE_ENV !== 'testing') {

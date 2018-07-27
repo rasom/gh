@@ -1,11 +1,10 @@
 import { flags } from '@oclif/command'
 import { IRepoIssues, IPaginationInfo, IRemoteInfo } from '../../interfaces'
-import chalk from 'chalk'
 import * as moment from 'moment'
 import Command from '../../base'
 import { config } from '../../config'
 import { compressQuery, graphQL } from '../../graphQL'
-import { log } from '../../logger'
+import { chalk, log } from '../../logger'
 
 export default class List extends Command {
   public static description = 'List & filter issues'
