@@ -5,9 +5,9 @@ import { stdout } from './mock/stdout'
 import { user, repo } from './mock/user'
 import { formatResponse, mapArgsToQuery, requestIssues } from '../../src/commands/issue/list'
 import { compressQuery } from '../../src/graphQL'
-import { equal } from 'assert'
 
 const mockResponses = responses.issue.list
+const mockStdout = stdout.issue.list
 const mockQueries = queries.issue.list
 
 describe('`issue:list` Maps args to query', () => {
@@ -69,6 +69,48 @@ describe('`issue:list` Formats/Converts response object correctly for console', 
   it('formats response for: issue:list', () => {
     const formattedResponse = formatResponse({}, JSON.parse(mockResponses.base.response))
 
-    expect(formattedResponse).to.equal()
+    expect(formattedResponse.join('|')).to.equal(mockStdout.base)
+  })
+
+  it('builds query for: issue:list --all', () => {
+    const formattedResponse = formatResponse({ all: true }, JSON.parse(mockResponses.all))
+
+    expect(formattedResponse.join('|')).to.equal(mockStdout.all)
+  })
+
+  it(`formats response for: issue:list --assignee ${user}`, () => {
+    const formattedResponse = formatResponse({ assignee: user }, JSON.parse(mockResponses.assignee))
+
+    expect(formattedResponse.join('|')).to.equal(mockStdout.assignee)
+  })
+
+  it('formats response for: issue:list --detailed', () => {
+    const formattedResponse = formatResponse({ detailed: true }, JSON.parse(mockResponses.detailed))
+
+    expect(formattedResponse.join('|')).to.equal(mockStdout.detailed)
+  })
+
+  it(`builds query for: issue:list --label 'bug,good first issue'`, () => {
+    const formattedResponse = formatResponse(
+      { label: 'bug, good first issue' },
+      JSON.parse(mockResponses.label)
+    )
+
+    expect(formattedResponse.join('|')).to.equal(mockStdout.label)
+  })
+
+  it(`builds query for: issue:list --milestone 'milestone 1'`, () => {
+    const formattedResponse = formatResponse(
+      { milestone: 'milestone 1' },
+      JSON.parse(mockResponses.milestone)
+    )
+
+    expect(formattedResponse.join('|')).to.equal(mockStdout.milestone)
+  })
+
+  it('builds query for: issue:list --state closed', () => {
+    const formattedResponse = formatResponse({ state: 'closed' }, JSON.parse(mockResponses.state))
+
+    expect(formattedResponse.join('|')).to.equal(mockStdout.state)
   })
 })

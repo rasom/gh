@@ -3,9 +3,11 @@
 import * as prettier from 'prettier'
 import chalk from 'chalk'
 
-export function log(...msg) {
+export function log(...messages) {
   if (process.env.NODE_ENV !== 'testing') {
-    console.log(...msg)
+    messages.forEach(msg => {
+      console.log(msg.trim(), '\n')
+    })
   }
 }
 
@@ -27,7 +29,11 @@ export namespace log {
 
   export function debug(...msg) {
     if (process.env.DEBUG === 'true') {
-      console.log(chalk.yellow('Using debug logging: \n'), ...msg)
+      console.log(
+        chalk.yellow('Debug ============ > \n\n'),
+        ...msg,
+        chalk.yellow('\n======================')
+      )
     }
   }
 }

@@ -65,7 +65,8 @@ export async function orchestrate(
   log.query(query)
 
   let response = await requestIssues(query)
-  log.debug(response.repository.issues)
+  // log.debug(JSON.stringify(response))
+  log.debug(JSON.stringify(response.repository.issues, null, 4))
 
   let formattedIssues = formatResponse(flags, response)
   log(...formattedIssues)
@@ -217,6 +218,7 @@ export function formatResponse(flags, response): string[] {
 
       if (assignees.length === 0) {
         continue
+        // todo : handle messaging when no assignees get returned
       }
     }
 
@@ -250,12 +252,16 @@ export function formatResponse(flags, response): string[] {
     if (flags.detailed) {
       formattedIssue = `
         ${formattedIssue}
-        ${node.bodyText}
         ${chalk.cyan(node.url)}
+        ${node.bodyText}
       `
     }
 
-    formattedIssues.push(`${formattedIssue}\n`)
+    formattedIssues.push(trimLeadingSpaces(formattedIssue))
+  }
+
+  function trimLeadingSpaces(str) {
+    return str.replace(/^[ ]+/gm, '')
   }
 
   return formattedIssues
